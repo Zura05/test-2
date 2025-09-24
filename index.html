@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Card Tracker</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b5cff">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <style>
+    :root{
+      --owned-blue:#e6f0ff; --gold:#FFD700;
+      --need-red:#e53935; --owned-green:#7CFC00; --dup-green:#008000;
+      --tile:#fff; --tile-border:#e5e7eb; --bg:#f5f7fb; --text:#111;
+      --pill:#f2f3f5;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--tile-border);padding:10px 12px;z-index:10}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    select,button{font:inherit;border:1px solid var(--tile-border);border-radius:8px;padding:8px 10px;background:#fff;cursor:pointer}
+    main{padding:12px;max-width:1000px;margin:0 auto}
+    .deck{margin:14px 0}
+    .deck-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .deck-title{font-weight:600}
+    .deck-title.complete{color:#d4af37} /* gold text when deck complete */
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .card{
+      background:var(--tile); border:1px solid var(--tile-border); border-radius:12px;
+      padding:10px; position:relative; min-height:110px;
+      display:flex;flex-direction:column;gap:6px;justify-content:space-between;
+    }
+    .stars{font-size:12px;opacity:.8;min-height:16px}
+    .name{font-size:14px;font-weight:600;}
+    .state-row{display:flex;gap:6px;flex-wrap:wrap}
+    .pill{border-radius:999px;background:var(--pill);padding:4px 8px;border:1px solid var(--tile-border);font-size:12px;cursor:pointer}
+    .pill.need{background:#ffeaea;border-color:#ffd0d0;color:#900}
+    .pill.owned{background:#ecffe6;border-color:#d7ffd1;color:#063}
+    .pill.dup{background:#eaf7ea;border-color:#cfe8cf;color:#063}
+    .dup-count{position:absolute;right:8px;bottom:8px;font-size:12px;opacity:.8}
+    .hold-tag{position:absolute;left:8px;bottom:8px;font-size:11px;background:#ffe9e9;border:1px solid #ffc9c9;padding:2px 6px;border-radius:999px;color:#a00;display:none}
+    .gold{background:var(--gold)!important}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:.96;z-index:200;display:none}
+    dialog{border:none;border-radius:12px;max-width:420px;width:90%;}
+    .row{display:flex;gap:8px;align-items:center;margin:8px 0}
+    .row label{min-width:110px;font-size:14px}
+    .btn{border:1px solid var(--tile-border);border-radius:8px;padding:8px 10px;background:#fff;cursor:pointer}
+    .btn.primary{background:#0b5cff;color:white;border-color:#0b5cff}
+    .section-title{margin:12px 0 6px;font-weight:700}
+    .hud{font-size:12px;opacity:.8}
+    .review{white-space:pre-wrap;background:#fff;border:1px solid var(--tile-border);padding:8px;border-radius:8px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="toolbar">
+    <select id="teamSelect"></select>
+    <button id="switchDeckBtn">Prev Deck</button>
+    <div id="deckIndicator" class="hud"></div>
+    <button id="nextDeckBtn">Next Deck</button>
+    <button id="completeBtn" class="btn">Complete (copy sends)</button>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<div class="toast" id="toast"></div>
+
+<!-- Card Sheet Modal -->
+<dialog id="cardDialog">
+  <form method="dialog">
+    <h3 id="cdTitle">Card</h3>
+    <div class="row"><label>Stars</label><span id="cdStars">⭐⭐⭐</span></div>
+    <div class="row"><label>Gold</label><span id="cdGoldFlag">No</span></div>
+    <div class="section-title">Set State</div>
+    <div class="row">
+      <button type="button" class="btn" id="btnNeed">Needed</button>
+      <button type="button" class="btn" id="btnOwned">Owned</button>
+      <button type="button" class="btn" id="btnDupMinus">−</button>
+      <span id="dupDisplay">Dup: 0</span>
+      <button type="button" class="btn" id="btnDupPlus">＋</button>
+    </div>
+    <div class="section-title">Hold</div>
+    <div class="row">
+      <label for="holdFor">On Hold for</label>
+      <input id="holdFor" placeholder="Player name..." />
+      <button type="button" class="btn" id="btnSetHold">Set Hold</button>
+      <button type="button" class="btn" id="btnClearHold">Clear Hold</button>
+    </div>
+    <div class="section-title">Send</div>
+    <div class="row">
+      <label for="sendTo">Send to</label>
+      <input id="sendTo" placeholder="Player name..." />
+      <button type="button" class="btn primary" id="btnSend">Send</button>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn">Close</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Review & Send Modal -->
+<dialog id="reviewDialog">
+  <form method="dialog">
+    <h3>Today’s Sends</h3>
+    <div class="review" id="reviewText"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn">Close</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js" type="module"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js'));
+  }
+</script>
+</body>
+</html>
