@@ -3,48 +3,63 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Card Tracker (Single-File)</title>
+<title>Card Tracker (One-file • Holds Red • Export • Reset • Who Needs)</title>
 <style>
   :root{
     --owned-blue:#e6f0ff; --gold:#FFD700;
-    --need-red:#e53935; --owned-green:#7CFC00; --dup-green:#008000;
+    --need-red:#e53935; --owned-green:#2e7d32; --dup-green:#006400;
     --tile:#fff; --tile-border:#e5e7eb; --bg:#f5f7fb; --text:#111; --pill:#f2f3f5;
   }
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
   header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--tile-border);padding:10px 12px;z-index:10}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  button{font:inherit;border:1px solid var(--tile-border);border-radius:8px;padding:8px 10px;background:#fff;cursor:pointer}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .left,.right{display:flex;gap:8px;align-items:center}
+  button{font:inherit;border:1px solid var(--tile-border);border-radius:10px;padding:10px 12px;background:#fff;cursor:pointer}
   .btn.primary{background:#0b5cff;color:#fff;border-color:#0b5cff}
   main{padding:12px;max-width:1000px;margin:0 auto}
   .deck{margin:14px 0}
   .deck-header{padding:6px 2px;border-bottom:1px solid var(--tile-border);display:flex;justify-content:space-between;align-items:center}
-  .deck-title{font-weight:600} .deck-title.complete{color:#d4af37}
+  .deck-title{font-weight:600;cursor:pointer}
+  .deck-title.complete{color:#d4af37}
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-  .card{background:var(--tile); border:1px solid var(--tile-border); border-radius:12px; padding:10px; position:relative; min-height:110px; display:flex;flex-direction:column;gap:6px;justify-content:space-between}
+  .card{
+    background:var(--tile); border:1px solid var(--tile-border); border-radius:12px;
+    padding:10px; position:relative; min-height:120px;
+    display:flex;flex-direction:column;gap:8px;justify-content:space-between
+  }
+  .card.held{ background:#fff5f5; border-color:#ffc6c6; } /* RED tint when On Hold */
+  .gold{background:var(--gold)!important}
   .stars{font-size:12px;opacity:.8;min-height:16px}
-  .name{font-size:14px;font-weight:600}
-  .state-row{display:flex;gap:6px;flex-wrap:wrap}
-  .pill{border-radius:999px;background:var(--pill);padding:4px 8px;border:1px solid var(--tile-border);font-size:12px;cursor:pointer}
-  .pill.need{background:#ffeaea;border-color:#ffd0d0;color:#900}
-  .pill.owned{background:#ecffe6;border-color:#d7ffd1;color:#063}
-  .pill.dup{background:#eaf7ea;border-color:#cfe8cf;color:#063}
+  .name{font-size:14px;font-weight:700}
+  .hint{font-size:11px;opacity:.6}
+  .stateBtn{border-radius:10px;padding:10px;text-align:center;font-weight:600}
+  .state-need{background:#ffeaea;border:1px solid #ffd0d0;color:#900}
+  .state-owned{background:#ecffe6;border:1px solid #d7ffd1;color:#063}
+  .state-dup{background:#eaf7ea;border:1px solid #cfe8cf;color:#063}
   .dup-count{position:absolute;right:8px;bottom:8px;font-size:12px;opacity:.8}
   .hold-tag{position:absolute;left:8px;bottom:8px;font-size:11px;background:#ffe9e9;border:1px solid #ffc9c9;padding:2px 6px;border-radius:999px;color:#a00;display:none}
-  .gold{background:var(--gold)!important}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:.96;z-index:200;display:none}
-  dialog{border:none;border-radius:12px;max-width:420px;width:90%;}
+  dialog{border:none;border-radius:12px;max-width:480px;width:92%;}
   .row{display:flex;gap:8px;align-items:center;margin:8px 0}
   .row label{min-width:110px;font-size:14px}
-  .hud{font-size:12px;opacity:.8}
-  .review{white-space:pre-wrap;background:#fff;border:1px solid var(--tile-border);padding:8px;border-radius:8px}
+  .review, .exportBox{white-space:pre-wrap;background:#fff;border:1px solid var(--tile-border);padding:8px;border-radius:8px}
+  .chip{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--tile-border);padding:6px 10px;border-radius:999px;margin:4px 6px 0 0;background:#fff;cursor:pointer}
+  .chips{display:flex;flex-wrap:wrap}
+  .small{font-size:12px;opacity:.7}
 </style>
 </head>
 <body>
 <header>
   <div class="toolbar">
-    <button id="completeBtn" class="btn">Complete (copy sends)</button>
-    <span class="hud">Local-only demo • 3 sends/day</span>
+    <div class="left">
+      <button id="menuBtn" title="Menu">☰ Menu</button>
+      <span class="small">Local-only • tap the big button to cycle state</span>
+    </div>
+    <div class="right">
+      <button id="exportBtn" class="btn">Export</button>
+      <button id="completeBtn" class="btn">Complete (copy sends)</button>
+    </div>
   </div>
 </header>
 
@@ -59,28 +74,31 @@
     <div class="row"><label>Gold</label><span id="cdGoldFlag">No</span></div>
     <div class="row"><label>Dup</label><span id="dupDisplay">0</span></div>
 
-    <div class="row">
-      <button type="button" class="btn" id="btnNeed">Needed</button>
-      <button type="button" class="btn" id="btnOwned">Owned</button>
-      <button type="button" class="btn" id="btnDupMinus">−</button>
-      <button type="button" class="btn" id="btnDupPlus">＋</button>
-    </div>
-
-    <h4 class="row" style="margin-top:14px">Hold</h4>
-    <div class="row">
-      <label for="holdFor">On Hold for</label>
-      <input id="holdFor" placeholder="Player name..." />
+    <div class="row" style="gap:6px;flex-wrap:wrap">
       <button type="button" class="btn" id="btnSetHold">Set Hold</button>
+      <input id="holdFor" placeholder="Hold for… (name)" />
       <button type="button" class="btn" id="btnClearHold">Clear Hold</button>
+      <button type="button" class="btn" id="btnWhoNeeds">Who Needs This?</button>
     </div>
 
-    <h4 class="row" style="margin-top:14px">Send</h4>
+    <h4 class="row" style="margin-top:6px">Send</h4>
     <div class="row">
       <label for="sendTo">Send to</label>
       <input id="sendTo" placeholder="Player name..." />
       <button type="button" class="btn primary" id="btnSend">Send</button>
     </div>
 
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn">Close</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Who Needs This Modal -->
+<dialog id="needsDialog">
+  <form method="dialog">
+    <h3>Who Needs This?</h3>
+    <div id="needsChips" class="chips"></div>
     <div class="row" style="justify-content:flex-end;margin-top:12px">
       <button class="btn">Close</button>
     </div>
@@ -98,29 +116,72 @@
   </form>
 </dialog>
 
+<!-- Export Modal -->
+<dialog id="exportDialog">
+  <form method="dialog">
+    <h3>Export (Deck 1 → 15)</h3>
+    <div id="exportChunks"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn">Close</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Menu Modal -->
+<dialog id="menuDialog">
+  <form method="dialog">
+    <h3>Menu</h3>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn" id="resetCollectionBtn">Start New Collection</button>
+      <button type="button" class="btn" id="teamBtn">Edit Team (local)</button>
+      <button type="button" class="btn" id="copyReviewBtn">Copy “Review & Send”</button>
+      <button type="button" class="btn" id="resetDeviceBtn">Reset Local Data</button>
+    </div>
+    <div class="row small">Team list is local-only (used by “Who Needs This?” quick-send).</div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn">Close</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Team Editor Modal -->
+<dialog id="teamDialog">
+  <form method="dialog">
+    <h3>Team (local)</h3>
+    <div class="row">
+      <input id="teamInput" placeholder="Add name and tap +"/>
+      <button type="button" class="btn" id="addTeammateBtn">＋</button>
+    </div>
+    <div id="teamChips" class="chips"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn">Close</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
-/*** ===== Spec constants (v25) ===== ***/
+/*** ===== Spec constants ===== ***/
 const DAILY_SEND_LIMIT = 3;
 
-/* Star value template */
+/* Star value template (fixed by deck/card) */
 function starValue(deck, card){
   const r = [
     [],
-    [1,1,1,1,1,1,1,1,2], // D1
-    [1,1,1,1,1,1,1,2,2], // D2
-    [1,1,1,1,1,1,1,2,3], // D3
-    [1,1,1,1,1,2,2,2,3], // D4
-    [1,1,1,2,2,2,2,3,4], // D5
-    [1,1,2,2,2,2,3,4,5], // D6
-    [1,2,2,2,3,3,4,5,5], // D7 (9 gold)
-    [2,2,2,2,3,3,4,5,5], // D8 (9 gold)
-    [2,2,3,3,4,4,5,5,5], // D9 (9 gold)
-    [2,2,3,3,4,4,5,5,5], // D10 (8-9 gold)
-    [2,3,3,3,5,5,5,5,5], // D11 (8-9 gold)
-    [3,3,3,4,4,5,5,5,5], // D12 (8-9 gold)
-    [3,3,3,4,4,5,5,5,5], // D13 (7-9 gold)
-    [3,3,4,4,5,5,5,5,5], // D14 (7-9 gold)
-    [4,4,4,4,5,5,5,5,5], // D15 (7-9 gold)
+    [1,1,1,1,1,1,1,1,2],
+    [1,1,1,1,1,1,1,2,2],
+    [1,1,1,1,1,1,1,2,3],
+    [1,1,1,1,1,2,2,2,3],
+    [1,1,1,2,2,2,2,3,4],
+    [1,1,2,2,2,2,3,4,5],
+    [1,2,2,2,3,3,4,5,5],
+    [2,2,2,2,3,3,4,5,5],
+    [2,2,3,3,4,4,5,5,5],
+    [2,2,3,3,4,4,5,5,5],
+    [2,3,3,3,5,5,5,5,5],
+    [3,3,3,4,4,5,5,5,5],
+    [3,3,3,4,4,5,5,5,5],
+    [3,3,4,4,5,5,5,5,5],
+    [4,4,4,4,5,5,5,5,5],
   ];
   return r[deck][card-1];
 }
@@ -131,19 +192,21 @@ function isGold(deck, card){
   return card>=7;
 }
 
-/*** ===== Simple local state (no backend) ===== ***/
+/*** ===== Simple local state ===== ***/
 const store = {
-  load(){ return JSON.parse(localStorage.getItem('ct_v25')||'null') || this.init(); },
-  save(s){ localStorage.setItem('ct_v25', JSON.stringify(s)); },
+  load(){ return JSON.parse(localStorage.getItem('ct_v26')||'null') || this.init(); },
+  save(s){ localStorage.setItem('ct_v26', JSON.stringify(s)); },
   init(){
     const s = {
       player:'You',
       daySendsUsed:0,
       lastDay: new Date().toDateString(),
+      team: ['Roxie','Kevin','Zac'], // local list for "Who Needs This?"
       decks: Array.from({length:15}, (_,d)=>({
         deckIndex:d+1, deckName:`Deck ${d+1}`,
         cards:Array.from({length:9}, (_,c)=>({
-          cardIndex:c+1, name:`Card ${c+1}`, state:'blank', dup:0, holdFor:null
+          cardIndex:c+1, name:`Card ${c+1}`,
+          state:'needed', dup:0, holdFor:null
         }))
       }))
     };
@@ -153,16 +216,22 @@ const store = {
 let S = store.load();
 dailyResetGuard();
 
+/*** ===== UI render (all 15 decks) ===== ***/
 const app = document.getElementById('app');
 render();
 
-/*** ===== UI render (all 15 decks, continuous scroll) ===== ***/
 function render(){
   app.innerHTML = '';
   S.decks.forEach(deck=>{
     const sec = el('section','deck');
+
+    // header
     const head = el('div','deck-header');
     const title = el('div','deck-title', deck.deckName);
+    title.addEventListener('click', ()=>{
+      const nn = prompt('Rename deck:', deck.deckName);
+      if (nn && nn.trim()){ deck.deckName = nn.trim().slice(0,40); saveAndRerender(); }
+    });
     if (isDeckComplete(deck)) title.classList.add('complete');
     head.appendChild(title); sec.appendChild(head);
 
@@ -171,37 +240,31 @@ function render(){
       const tile = el('div','card');
       const gold = isGold(deck.deckIndex, card.cardIndex);
       if (gold) tile.classList.add('gold');
+      if (!gold && card.holdFor) tile.classList.add('held'); // red tint
 
       const stars = el('div','stars','⭐'.repeat(starValue(deck.deckIndex, card.cardIndex)));
       tile.appendChild(stars);
 
       const name = el('div','name', card.name);
+      name.title='Tap to rename';
+      name.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const nn = prompt('Rename card:', card.name);
+        if (nn && nn.trim()){ card.name = nn.trim().slice(0,40); saveAndRerender(); }
+      });
       tile.appendChild(name);
 
-      const row = el('div','state-row');
-      row.appendChild(pill('Needed','need', ()=>setState(deck, card, 'needed', gold)));
-      row.appendChild(pill('Owned','owned', ()=>setState(deck, card, 'owned', gold)));
-      if (!gold){
-        row.appendChild(pill('Duplicate','dup', ()=>{
-          card.state='owned';
-          card.dup=Math.min(10,(card.dup||0)+1);
-          saveAndRerender();
-        }));
-      }
-      tile.appendChild(row);
+      // ONE big cycle button
+      const btn = el('button','stateBtn'); btn.addEventListener('click', (e)=>{ e.stopPropagation(); cycleState(card, gold); });
+      tile.appendChild(btn);
 
-      const dup = el('div','dup-count');
-      if (!gold && card.dup>0){
-        const held = card.holdFor ? 1 : 0;
-        dup.textContent = held ? `×${card.dup} • ${held} On Hold` : `×${card.dup}`;
-      }
-      tile.appendChild(dup);
+      const dup = el('div','dup-count'); tile.appendChild(dup);
+      const hold = el('div','hold-tag'); tile.appendChild(hold);
 
-      const hold = el('div','hold-tag');
-      if (!gold && card.holdFor){ hold.style.display='inline-block'; hold.textContent=`On Hold for ${card.holdFor}`; }
-      tile.appendChild(hold);
-
+      // open sheet on tile click
       tile.addEventListener('click', ()=>openCardSheet(deck.deckIndex, card.cardIndex));
+
+      updateTileVisuals(btn, dup, hold, card, gold);
       grid.appendChild(tile);
     });
 
@@ -210,29 +273,55 @@ function render(){
   });
 }
 
-/*** ===== Helpers ===== */
-function el(tag, cls, text){ const x=document.createElement(tag); if(cls) x.className=cls; if(text!=null) x.textContent=text; return x; }
-function pill(label, cls, onClick){ const b=el('button','pill '+cls,label); b.type='button'; b.addEventListener('click',e=>{e.stopPropagation(); onClick();}); return b; }
-function setState(deck, card, state, gold){
+function updateTileVisuals(btn, dupEl, holdEl, card, gold){
   if (gold){
-    card.state = (state==='owned') ? 'owned' : 'blank';
-    card.dup = 0;
+    if (card.state!=='owned') card.state='blank'; // gold: blank/owned only
+    btn.className='stateBtn ' + (card.state==='owned'?'state-owned':'state-need');
+    btn.textContent = (card.state==='owned') ? 'Owned (Gold)' : 'Blank (Gold)';
+    dupEl.textContent=''; holdEl.style.display='none';
+    return;
+  }
+  // normal cards
+  if (card.state==='needed'){
+    btn.className='stateBtn state-need'; btn.textContent='Needed';
+  }else if (card.state==='owned' && (card.dup||0)===0){
+    btn.className='stateBtn state-owned'; btn.textContent='Owned';
   }else{
-    if (state==='needed') card.state='needed';
-    if (state==='owned') card.state='owned';
+    btn.className='stateBtn state-dup';
+    btn.textContent = `Duplicate ×${card.dup||1}`;
+  }
+  const held = card.holdFor ? 1 : 0;
+  dupEl.textContent = (card.dup>0) ? (held ? `×${card.dup} • ${held} On Hold` : `×${card.dup}`) : '';
+  if (card.holdFor){ holdEl.style.display='inline-block'; holdEl.textContent=`On Hold for ${card.holdFor}`; } else { holdEl.style.display='none'; }
+}
+
+function cycleState(card, gold){
+  if (gold){
+    card.state = (card.state==='owned') ? 'blank' : 'owned';
+    saveAndRerender(); return;
+  }
+  // Needed → Owned → Dup×1..10 → Needed
+  if (card.state==='needed'){ card.state='owned'; card.dup=0; }
+  else if (card.state==='owned'){ card.state='owned'; card.dup=1; }
+  else { // duplicate path
+    card.dup = (card.dup||1)+1;
+    if (card.dup>10){ card.state='needed'; card.dup=0; card.holdFor=null; }
   }
   saveAndRerender();
 }
+
 function isDeckComplete(deck){
   return deck.cards.every(c=>{
     const gold = isGold(deck.deckIndex, c.cardIndex);
     if (gold) return c.state==='owned';
-    return c.state==='owned'; // completion = all owned (dups irrelevant)
+    return c.state==='owned' || (c.state==='owned' && c.dup>=0);
   });
 }
-function saveAndRerender(){ store.save(S); render(); }
 
-/*** ===== Card Sheet (modal) ===== */
+function saveAndRerender(){ store.save(S); render(); }
+function el(tag, cls, text){ const x=document.createElement(tag); if(cls) x.className=cls; if(text!=null) x.textContent=text; return x; }
+
+/*** ===== Card Sheet ===== */
 const dlg = document.getElementById('cardDialog');
 const cdTitle = document.getElementById('cdTitle');
 const cdStars = document.getElementById('cdStars');
@@ -240,6 +329,8 @@ const cdGoldFlag = document.getElementById('cdGoldFlag');
 const dupDisplay = document.getElementById('dupDisplay');
 const holdForInput = document.getElementById('holdFor');
 const sendToInput = document.getElementById('sendTo');
+const needsDialog = document.getElementById('needsDialog');
+const needsChips = document.getElementById('needsChips');
 let activeRef = null;
 
 function openCardSheet(d,c){
@@ -254,27 +345,7 @@ function openCardSheet(d,c){
   dlg.showModal();
 }
 
-document.getElementById('btnNeed').onclick=()=>{
-  const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
-  if (isGold(d,c)) return showToast('Gold cards cannot be Needed');
-  card.state='needed'; saveAndRerender();
-};
-document.getElementById('btnOwned').onclick=()=>{
-  const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
-  card.state='owned'; saveAndRerender();
-};
-document.getElementById('btnDupPlus').onclick=()=>{
-  const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
-  if (isGold(d,c)) return showToast('Gold cards cannot be duplicates');
-  card.state='owned'; card.dup=Math.min(10,(card.dup||0)+1); dupDisplay.textContent=card.dup; saveAndRerender();
-};
-document.getElementById('btnDupMinus').onclick=()=>{
-  const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
-  if (isGold(d,c)) return;
-  card.dup=Math.max(0,(card.dup||0)-1); dupDisplay.textContent=card.dup;
-  if (card.dup===0) card.holdFor=null;
-  saveAndRerender();
-};
+// Holds
 document.getElementById('btnSetHold').onclick=()=>{
   const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
   if (isGold(d,c)) return showToast('Gold cards cannot be held');
@@ -283,15 +354,31 @@ document.getElementById('btnSetHold').onclick=()=>{
   card.holdFor=name; saveAndRerender();
 };
 document.getElementById('btnClearHold').onclick=()=>{
-  // In real app: only recipient or admin clears. Here we allow manual clear to simulate it.
   const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
   card.holdFor=null; saveAndRerender();
 };
+
+// Who Needs This (quick send from local team list)
+document.getElementById('btnWhoNeeds').onclick=()=>{
+  const team = S.team||[];
+  needsChips.innerHTML='';
+  if (team.length===0){ needsChips.textContent='No teammates yet. Add some in Menu → Edit Team.'; }
+  team.forEach(name=>{
+    const chip = document.createElement('div');
+    chip.className='chip';
+    chip.textContent = `→ ${name}`;
+    chip.onclick = ()=>{ sendToInput.value=name; needsDialog.close(); };
+    needsChips.appendChild(chip);
+  });
+  needsDialog.showModal();
+};
+
+// Send
 document.getElementById('btnSend').onclick=()=>{
   dailyResetGuard();
   if (S.daySendsUsed >= DAILY_SEND_LIMIT) return showToast('Daily limit reached (3/3 sends used)');
   const {d,c}=activeRef; const deck=S.decks[d-1]; const card=deck.cards[c-1];
-  const gold=isGold(d,c); if (gold) return showToast('Gold cards are unshareable');
+  if (isGold(d,c)) return showToast('Gold cards are unshareable');
   const to=sendToInput.value.trim(); if(!to) return showToast('Enter recipient name');
 
   const held=card.holdFor ? 1 : 0;
@@ -300,6 +387,7 @@ document.getElementById('btnSend').onclick=()=>{
 
   card.dup=(card.dup||0)-1;
   if (card.dup===0) card.holdFor=null;
+  card.state = (card.dup>0) ? 'owned' : 'owned';
   S.daySendsUsed += 1;
   logSend(S.player,to,deck.deckName,card.name);
   store.save(S); render();
@@ -309,18 +397,74 @@ document.getElementById('btnSend').onclick=()=>{
 /*** ===== Review & Send ===== */
 const reviewDlg=document.getElementById('reviewDialog');
 const reviewText=document.getElementById('reviewText');
-document.getElementById('completeBtn').onclick=()=>{
+document.getElementById('completeBtn').onclick=()=>{ copyReview(); reviewDlg.showModal(); };
+function copyReview(){
   const sends = getTodaySendsOnly();
   const used = S.daySendsUsed;
   const header = `${S.player}’s sends today (${Math.min(used, DAILY_SEND_LIMIT)}/${DAILY_SEND_LIMIT}):`;
   const lines = [header, ...sends.map(s=>`→ ${s.to}: ${s.card}`)];
   const out = lines.join('\n');
-  reviewText.textContent=out;
-  copyText(out);
-  reviewDlg.showModal();
+  reviewText.textContent=out; copyText(out);
+}
+
+/*** ===== Export (🟪/🔴/🔵 with 500-char chunks) ===== */
+const exportDialog = document.getElementById('exportDialog');
+const exportBtn = document.getElementById('exportBtn');
+const exportChunksDiv = document.getElementById('exportChunks');
+exportBtn.onclick=()=>{
+  const blocks = buildExportText(); // array of chunks ≤500 chars
+  exportChunksDiv.innerHTML='';
+  blocks.forEach((txt,i)=>{
+    const box=document.createElement('div'); box.className='exportBox'; box.textContent=txt;
+    const row=document.createElement('div'); row.className='row'; row.style.justifyContent='flex-end';
+    const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Copy chunk '+(i+1);
+    btn.onclick=()=>copyText(txt);
+    exportChunksDiv.appendChild(box); row.appendChild(btn); exportChunksDiv.appendChild(row);
+  });
+  exportDialog.showModal();
 };
 
-/*** ===== Daily log (private) ===== */
+function buildExportText(){
+  // Build per deck: 🟪 header, 🔴 NEED, 🔵 DUPLICATES; order 1→15; no stars in export
+  let out = [];
+  for (const deck of S.decks){
+    const need = [], dup = [];
+    deck.cards.forEach(c=>{
+      const gold = isGold(deck.deckIndex, c.cardIndex);
+      if (gold){
+        if (c.state!=='owned') need.push(c.name);
+      }else{
+        if (c.state==='needed') need.push(c.name);
+        if ((c.dup||0)>0) dup.push(`${c.name} ×${c.dup}`);
+      }
+    });
+    const parts = [];
+    parts.push(`🟪 ${deck.deckName}`);
+    if (need.length) parts.push(`🔴 NEED:\n${need.join(', ')}`);
+    if (dup.length) parts.push(`🔵 DUPLICATES:\n${dup.join(', ')}`);
+    if (parts.length>1) out.push(parts.join('\n'));
+  }
+  // chunking ≤500 chars
+  const chunks=[]; let buf='';
+  for (const block of out){
+    if ((buf+'\n\n'+block).length>500){
+      if (buf) { chunks.push(buf.trim()); buf=''; }
+      if (block.length<=500){ buf=block; }
+      else{
+        // split long block
+        let b=block;
+        while (b.length>500){ chunks.push(b.slice(0,500)); b=b.slice(500); }
+        buf=b;
+      }
+    } else {
+      buf = buf ? (buf+'\n\n'+block) : block;
+    }
+  }
+  if (buf) chunks.push(buf.trim());
+  return chunks.length?chunks:['(Nothing to export yet)'];
+}
+
+/*** ===== Daily log ===== */
 function getLog(){ return JSON.parse(localStorage.getItem('ct_log')||'[]'); }
 function setLog(L){ localStorage.setItem('ct_log', JSON.stringify(L)); }
 function logSend(from,to,deck,card){
@@ -337,6 +481,49 @@ function dailyResetGuard(){
   }
 }
 
+/*** ===== Menu & Team ===== */
+const menuBtn=document.getElementById('menuBtn');
+const menuDialog=document.getElementById('menuDialog');
+menuBtn.onclick=()=>menuDialog.showModal();
+
+document.getElementById('copyReviewBtn').onclick=()=>{ copyReview(); showToast('Copied sends'); };
+
+document.getElementById('resetDeviceBtn').onclick=()=>{
+  if (confirm('Reset ALL local data on this device?')){
+    localStorage.removeItem('ct_v26'); localStorage.removeItem('ct_log');
+    S = store.init(); render(); showToast('Local data reset');
+  }
+};
+
+document.getElementById('resetCollectionBtn').onclick=()=>{
+  if (!confirm('Start a NEW collection? This clears states/dups/holds (keeps names).')) return;
+  S.decks.forEach(d=>d.cards.forEach(c=>{ c.state=isGold(d.deckIndex,c.cardIndex)?'blank':'needed'; c.dup=0; c.holdFor=null; }));
+  S.daySendsUsed=0; setLog([]); store.save(S); render(); showToast('New collection started');
+};
+
+// Team editor
+const teamDialog=document.getElementById('teamDialog');
+const teamBtn=document.getElementById('teamBtn');
+const teamChips=document.getElementById('teamChips');
+const teamInput=document.getElementById('teamInput');
+const addTeammateBtn=document.getElementById('addTeammateBtn');
+teamBtn.onclick=()=>{ paintTeam(); teamDialog.showModal(); };
+addTeammateBtn.onclick=()=>{
+  const v=(teamInput.value||'').trim(); if(!v) return;
+  if (!S.team.includes(v)) S.team.push(v);
+  teamInput.value=''; store.save(S); paintTeam();
+};
+function paintTeam(){
+  teamChips.innerHTML='';
+  if (!S.team || S.team.length===0){ teamChips.textContent='No teammates yet.'; return; }
+  S.team.forEach(name=>{
+    const chip=document.createElement('div'); chip.className='chip'; chip.textContent=name;
+    const x=document.createElement('span'); x.textContent='✕'; x.style.marginLeft='6px';
+    x.onclick=()=>{ S.team=S.team.filter(n=>n!==name); store.save(S); paintTeam(); };
+    chip.appendChild(x); teamChips.appendChild(chip);
+  });
+}
+
 /*** ===== Utils ===== */
 function copyText(t){ navigator.clipboard?.writeText(t).catch(()=>{}); }
 function showToast(msg){
@@ -348,3 +535,4 @@ function showToast(msg){
 </script>
 </body>
 </html>
+ 
