@@ -300,15 +300,28 @@ function cycleState(card, gold){
     card.state = (card.state==='owned') ? 'blank' : 'owned';
     saveAndRerender(); return;
   }
-  // Needed → Owned → Dup×1..10 → Needed
-  if (card.state==='needed'){ card.state='owned'; card.dup=0; }
-  else if (card.state==='owned'){ card.state='owned'; card.dup=1; }
-  else { // duplicate path
-    card.dup = (card.dup||1)+1;
-    if (card.dup>10){ card.state='needed'; card.dup=0; card.holdFor=null; }
-  }
-  saveAndRerender();
+ // === DUPLICATE STATE (dropdown + +/-) ==========================
+if (card.state === 'needed') {
+  card.state = 'owned';
+  card.dup = 0;
+} 
+else if (card.state === 'owned') {
+  card.state = 'duplicate';
+  card.dup = 1; // default one duplicate
+} 
+else if (card.state === 'duplicate') {
+  // leave state as duplicate, count controlled by dropdown
+  if (!card.dup || card.dup < 1) card.dup = 1;
+  if (card.dup > 10) card.dup = 10;
+} 
+else {
+  card.state = 'needed';
+  card.dup = 0;
 }
+
+saveAndRerender();
+  }
+
 
 function isDeckComplete(deck){
   return deck.cards.every(c=>{
