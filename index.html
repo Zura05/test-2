@@ -1,70 +1,54 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Card Tracker</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0b5cff">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <style>
-    :root{
-      --owned-blue:#e6f0ff; --gold:#FFD700;
-      --need-red:#e53935; --owned-green:#7CFC00; --dup-green:#008000;
-      --tile:#fff; --tile-border:#e5e7eb; --bg:#f5f7fb; --text:#111;
-      --pill:#f2f3f5;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--tile-border);padding:10px 12px;z-index:10}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    select,button{font:inherit;border:1px solid var(--tile-border);border-radius:8px;padding:8px 10px;background:#fff;cursor:pointer}
-    main{padding:12px;max-width:1000px;margin:0 auto}
-    .deck{margin:14px 0}
-    .deck-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-    .deck-title{font-weight:600}
-    .deck-title.complete{color:#d4af37} /* gold text when deck complete */
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-    .card{
-      background:var(--tile); border:1px solid var(--tile-border); border-radius:12px;
-      padding:10px; position:relative; min-height:110px;
-      display:flex;flex-direction:column;gap:6px;justify-content:space-between;
-    }
-    .stars{font-size:12px;opacity:.8;min-height:16px}
-    .name{font-size:14px;font-weight:600;}
-    .state-row{display:flex;gap:6px;flex-wrap:wrap}
-    .pill{border-radius:999px;background:var(--pill);padding:4px 8px;border:1px solid var(--tile-border);font-size:12px;cursor:pointer}
-    .pill.need{background:#ffeaea;border-color:#ffd0d0;color:#900}
-    .pill.owned{background:#ecffe6;border-color:#d7ffd1;color:#063}
-    .pill.dup{background:#eaf7ea;border-color:#cfe8cf;color:#063}
-    .dup-count{position:absolute;right:8px;bottom:8px;font-size:12px;opacity:.8}
-    .hold-tag{position:absolute;left:8px;bottom:8px;font-size:11px;background:#ffe9e9;border:1px solid #ffc9c9;padding:2px 6px;border-radius:999px;color:#a00;display:none}
-    .gold{background:var(--gold)!important}
-    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:.96;z-index:200;display:none}
-    dialog{border:none;border-radius:12px;max-width:420px;width:90%;}
-    .row{display:flex;gap:8px;align-items:center;margin:8px 0}
-    .row label{min-width:110px;font-size:14px}
-    .btn{border:1px solid var(--tile-border);border-radius:8px;padding:8px 10px;background:#fff;cursor:pointer}
-    .btn.primary{background:#0b5cff;color:white;border-color:#0b5cff}
-    .section-title{margin:12px 0 6px;font-weight:700}
-    .hud{font-size:12px;opacity:.8}
-    .review{white-space:pre-wrap;background:#fff;border:1px solid var(--tile-border);padding:8px;border-radius:8px}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Card Tracker (Single-File)</title>
+<style>
+  :root{
+    --owned-blue:#e6f0ff; --gold:#FFD700;
+    --need-red:#e53935; --owned-green:#7CFC00; --dup-green:#008000;
+    --tile:#fff; --tile-border:#e5e7eb; --bg:#f5f7fb; --text:#111; --pill:#f2f3f5;
+  }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--tile-border);padding:10px 12px;z-index:10}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button{font:inherit;border:1px solid var(--tile-border);border-radius:8px;padding:8px 10px;background:#fff;cursor:pointer}
+  .btn.primary{background:#0b5cff;color:#fff;border-color:#0b5cff}
+  main{padding:12px;max-width:1000px;margin:0 auto}
+  .deck{margin:14px 0}
+  .deck-header{padding:6px 2px;border-bottom:1px solid var(--tile-border);display:flex;justify-content:space-between;align-items:center}
+  .deck-title{font-weight:600} .deck-title.complete{color:#d4af37}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .card{background:var(--tile); border:1px solid var(--tile-border); border-radius:12px; padding:10px; position:relative; min-height:110px; display:flex;flex-direction:column;gap:6px;justify-content:space-between}
+  .stars{font-size:12px;opacity:.8;min-height:16px}
+  .name{font-size:14px;font-weight:600}
+  .state-row{display:flex;gap:6px;flex-wrap:wrap}
+  .pill{border-radius:999px;background:var(--pill);padding:4px 8px;border:1px solid var(--tile-border);font-size:12px;cursor:pointer}
+  .pill.need{background:#ffeaea;border-color:#ffd0d0;color:#900}
+  .pill.owned{background:#ecffe6;border-color:#d7ffd1;color:#063}
+  .pill.dup{background:#eaf7ea;border-color:#cfe8cf;color:#063}
+  .dup-count{position:absolute;right:8px;bottom:8px;font-size:12px;opacity:.8}
+  .hold-tag{position:absolute;left:8px;bottom:8px;font-size:11px;background:#ffe9e9;border:1px solid #ffc9c9;padding:2px 6px;border-radius:999px;color:#a00;display:none}
+  .gold{background:var(--gold)!important}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:.96;z-index:200;display:none}
+  dialog{border:none;border-radius:12px;max-width:420px;width:90%;}
+  .row{display:flex;gap:8px;align-items:center;margin:8px 0}
+  .row label{min-width:110px;font-size:14px}
+  .hud{font-size:12px;opacity:.8}
+  .review{white-space:pre-wrap;background:#fff;border:1px solid var(--tile-border);padding:8px;border-radius:8px}
+</style>
 </head>
 <body>
 <header>
   <div class="toolbar">
-    <select id="teamSelect"></select>
-    <button id="switchDeckBtn">Prev Deck</button>
-    <div id="deckIndicator" class="hud"></div>
-    <button id="nextDeckBtn">Next Deck</button>
     <button id="completeBtn" class="btn">Complete (copy sends)</button>
+    <span class="hud">Local-only demo • 3 sends/day</span>
   </div>
 </header>
 
 <main id="app"></main>
-
 <div class="toast" id="toast"></div>
 
 <!-- Card Sheet Modal -->
@@ -73,27 +57,30 @@
     <h3 id="cdTitle">Card</h3>
     <div class="row"><label>Stars</label><span id="cdStars">⭐⭐⭐</span></div>
     <div class="row"><label>Gold</label><span id="cdGoldFlag">No</span></div>
-    <div class="section-title">Set State</div>
+    <div class="row"><label>Dup</label><span id="dupDisplay">0</span></div>
+
     <div class="row">
       <button type="button" class="btn" id="btnNeed">Needed</button>
       <button type="button" class="btn" id="btnOwned">Owned</button>
       <button type="button" class="btn" id="btnDupMinus">−</button>
-      <span id="dupDisplay">Dup: 0</span>
       <button type="button" class="btn" id="btnDupPlus">＋</button>
     </div>
-    <div class="section-title">Hold</div>
+
+    <h4 class="row" style="margin-top:14px">Hold</h4>
     <div class="row">
       <label for="holdFor">On Hold for</label>
       <input id="holdFor" placeholder="Player name..." />
       <button type="button" class="btn" id="btnSetHold">Set Hold</button>
       <button type="button" class="btn" id="btnClearHold">Clear Hold</button>
     </div>
-    <div class="section-title">Send</div>
+
+    <h4 class="row" style="margin-top:14px">Send</h4>
     <div class="row">
       <label for="sendTo">Send to</label>
       <input id="sendTo" placeholder="Player name..." />
       <button type="button" class="btn primary" id="btnSend">Send</button>
     </div>
+
     <div class="row" style="justify-content:flex-end;margin-top:12px">
       <button class="btn">Close</button>
     </div>
@@ -111,11 +98,253 @@
   </form>
 </dialog>
 
-<script src="app.js" type="module"></script>
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js'));
+/*** ===== Spec constants (v25) ===== ***/
+const DAILY_SEND_LIMIT = 3;
+
+/* Star value template */
+function starValue(deck, card){
+  const r = [
+    [],
+    [1,1,1,1,1,1,1,1,2], // D1
+    [1,1,1,1,1,1,1,2,2], // D2
+    [1,1,1,1,1,1,1,2,3], // D3
+    [1,1,1,1,1,2,2,2,3], // D4
+    [1,1,1,2,2,2,2,3,4], // D5
+    [1,1,2,2,2,2,3,4,5], // D6
+    [1,2,2,2,3,3,4,5,5], // D7 (9 gold)
+    [2,2,2,2,3,3,4,5,5], // D8 (9 gold)
+    [2,2,3,3,4,4,5,5,5], // D9 (9 gold)
+    [2,2,3,3,4,4,5,5,5], // D10 (8-9 gold)
+    [2,3,3,3,5,5,5,5,5], // D11 (8-9 gold)
+    [3,3,3,4,4,5,5,5,5], // D12 (8-9 gold)
+    [3,3,3,4,4,5,5,5,5], // D13 (7-9 gold)
+    [3,3,4,4,5,5,5,5,5], // D14 (7-9 gold)
+    [4,4,4,4,5,5,5,5,5], // D15 (7-9 gold)
+  ];
+  return r[deck][card-1];
+}
+function isGold(deck, card){
+  if (deck<=6) return false;
+  if (deck<=9) return card===9;
+  if (deck<=12) return card>=8;
+  return card>=7;
+}
+
+/*** ===== Simple local state (no backend) ===== ***/
+const store = {
+  load(){ return JSON.parse(localStorage.getItem('ct_v25')||'null') || this.init(); },
+  save(s){ localStorage.setItem('ct_v25', JSON.stringify(s)); },
+  init(){
+    const s = {
+      player:'You',
+      daySendsUsed:0,
+      lastDay: new Date().toDateString(),
+      decks: Array.from({length:15}, (_,d)=>({
+        deckIndex:d+1, deckName:`Deck ${d+1}`,
+        cards:Array.from({length:9}, (_,c)=>({
+          cardIndex:c+1, name:`Card ${c+1}`, state:'blank', dup:0, holdFor:null
+        }))
+      }))
+    };
+    this.save(s); return s;
   }
+};
+let S = store.load();
+dailyResetGuard();
+
+const app = document.getElementById('app');
+render();
+
+/*** ===== UI render (all 15 decks, continuous scroll) ===== ***/
+function render(){
+  app.innerHTML = '';
+  S.decks.forEach(deck=>{
+    const sec = el('section','deck');
+    const head = el('div','deck-header');
+    const title = el('div','deck-title', deck.deckName);
+    if (isDeckComplete(deck)) title.classList.add('complete');
+    head.appendChild(title); sec.appendChild(head);
+
+    const grid = el('div','grid');
+    deck.cards.forEach(card=>{
+      const tile = el('div','card');
+      const gold = isGold(deck.deckIndex, card.cardIndex);
+      if (gold) tile.classList.add('gold');
+
+      const stars = el('div','stars','⭐'.repeat(starValue(deck.deckIndex, card.cardIndex)));
+      tile.appendChild(stars);
+
+      const name = el('div','name', card.name);
+      tile.appendChild(name);
+
+      const row = el('div','state-row');
+      row.appendChild(pill('Needed','need', ()=>setState(deck, card, 'needed', gold)));
+      row.appendChild(pill('Owned','owned', ()=>setState(deck, card, 'owned', gold)));
+      if (!gold){
+        row.appendChild(pill('Duplicate','dup', ()=>{
+          card.state='owned';
+          card.dup=Math.min(10,(card.dup||0)+1);
+          saveAndRerender();
+        }));
+      }
+      tile.appendChild(row);
+
+      const dup = el('div','dup-count');
+      if (!gold && card.dup>0){
+        const held = card.holdFor ? 1 : 0;
+        dup.textContent = held ? `×${card.dup} • ${held} On Hold` : `×${card.dup}`;
+      }
+      tile.appendChild(dup);
+
+      const hold = el('div','hold-tag');
+      if (!gold && card.holdFor){ hold.style.display='inline-block'; hold.textContent=`On Hold for ${card.holdFor}`; }
+      tile.appendChild(hold);
+
+      tile.addEventListener('click', ()=>openCardSheet(deck.deckIndex, card.cardIndex));
+      grid.appendChild(tile);
+    });
+
+    sec.appendChild(grid);
+    app.appendChild(sec);
+  });
+}
+
+/*** ===== Helpers ===== */
+function el(tag, cls, text){ const x=document.createElement(tag); if(cls) x.className=cls; if(text!=null) x.textContent=text; return x; }
+function pill(label, cls, onClick){ const b=el('button','pill '+cls,label); b.type='button'; b.addEventListener('click',e=>{e.stopPropagation(); onClick();}); return b; }
+function setState(deck, card, state, gold){
+  if (gold){
+    card.state = (state==='owned') ? 'owned' : 'blank';
+    card.dup = 0;
+  }else{
+    if (state==='needed') card.state='needed';
+    if (state==='owned') card.state='owned';
+  }
+  saveAndRerender();
+}
+function isDeckComplete(deck){
+  return deck.cards.every(c=>{
+    const gold = isGold(deck.deckIndex, c.cardIndex);
+    if (gold) return c.state==='owned';
+    return c.state==='owned'; // completion = all owned (dups irrelevant)
+  });
+}
+function saveAndRerender(){ store.save(S); render(); }
+
+/*** ===== Card Sheet (modal) ===== */
+const dlg = document.getElementById('cardDialog');
+const cdTitle = document.getElementById('cdTitle');
+const cdStars = document.getElementById('cdStars');
+const cdGoldFlag = document.getElementById('cdGoldFlag');
+const dupDisplay = document.getElementById('dupDisplay');
+const holdForInput = document.getElementById('holdFor');
+const sendToInput = document.getElementById('sendTo');
+let activeRef = null;
+
+function openCardSheet(d,c){
+  const deck=S.decks[d-1], card=deck.cards[c-1];
+  activeRef={d,c};
+  cdTitle.textContent=`${deck.deckName} — ${card.name}`;
+  cdStars.textContent='⭐'.repeat(starValue(d,c));
+  cdGoldFlag.textContent=isGold(d,c)?'Yes':'No';
+  dupDisplay.textContent=card.dup||0;
+  holdForInput.value = card.holdFor || '';
+  sendToInput.value = '';
+  dlg.showModal();
+}
+
+document.getElementById('btnNeed').onclick=()=>{
+  const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
+  if (isGold(d,c)) return showToast('Gold cards cannot be Needed');
+  card.state='needed'; saveAndRerender();
+};
+document.getElementById('btnOwned').onclick=()=>{
+  const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
+  card.state='owned'; saveAndRerender();
+};
+document.getElementById('btnDupPlus').onclick=()=>{
+  const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
+  if (isGold(d,c)) return showToast('Gold cards cannot be duplicates');
+  card.state='owned'; card.dup=Math.min(10,(card.dup||0)+1); dupDisplay.textContent=card.dup; saveAndRerender();
+};
+document.getElementById('btnDupMinus').onclick=()=>{
+  const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
+  if (isGold(d,c)) return;
+  card.dup=Math.max(0,(card.dup||0)-1); dupDisplay.textContent=card.dup;
+  if (card.dup===0) card.holdFor=null;
+  saveAndRerender();
+};
+document.getElementById('btnSetHold').onclick=()=>{
+  const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
+  if (isGold(d,c)) return showToast('Gold cards cannot be held');
+  if ((card.dup||0)<1) return showToast('You need a duplicate to set a Hold');
+  const name=holdForInput.value.trim(); if(!name) return showToast('Enter recipient name');
+  card.holdFor=name; saveAndRerender();
+};
+document.getElementById('btnClearHold').onclick=()=>{
+  // In real app: only recipient or admin clears. Here we allow manual clear to simulate it.
+  const {d,c}=activeRef; const card=S.decks[d-1].cards[c-1];
+  card.holdFor=null; saveAndRerender();
+};
+document.getElementById('btnSend').onclick=()=>{
+  dailyResetGuard();
+  if (S.daySendsUsed >= DAILY_SEND_LIMIT) return showToast('Daily limit reached (3/3 sends used)');
+  const {d,c}=activeRef; const deck=S.decks[d-1]; const card=deck.cards[c-1];
+  const gold=isGold(d,c); if (gold) return showToast('Gold cards are unshareable');
+  const to=sendToInput.value.trim(); if(!to) return showToast('Enter recipient name');
+
+  const held=card.holdFor ? 1 : 0;
+  const available=(card.dup||0)-held;
+  if (available<1) return showToast('No available duplicates to send (held is reserved)');
+
+  card.dup=(card.dup||0)-1;
+  if (card.dup===0) card.holdFor=null;
+  S.daySendsUsed += 1;
+  logSend(S.player,to,deck.deckName,card.name);
+  store.save(S); render();
+  showToast(`Sent ${card.name} → ${to}`);
+};
+
+/*** ===== Review & Send ===== */
+const reviewDlg=document.getElementById('reviewDialog');
+const reviewText=document.getElementById('reviewText');
+document.getElementById('completeBtn').onclick=()=>{
+  const sends = getTodaySendsOnly();
+  const used = S.daySendsUsed;
+  const header = `${S.player}’s sends today (${Math.min(used, DAILY_SEND_LIMIT)}/${DAILY_SEND_LIMIT}):`;
+  const lines = [header, ...sends.map(s=>`→ ${s.to}: ${s.card}`)];
+  const out = lines.join('\n');
+  reviewText.textContent=out;
+  copyText(out);
+  reviewDlg.showModal();
+};
+
+/*** ===== Daily log (private) ===== */
+function getLog(){ return JSON.parse(localStorage.getItem('ct_log')||'[]'); }
+function setLog(L){ localStorage.setItem('ct_log', JSON.stringify(L)); }
+function logSend(from,to,deck,card){
+  const L=getLog(); L.push({date:new Date().toDateString(), from,to,deck,card,type:'send'}); setLog(L);
+}
+function getTodaySendsOnly(){
+  const today=new Date().toDateString();
+  return getLog().filter(x=>x.date===today && x.type==='send');
+}
+function dailyResetGuard(){
+  const today=new Date().toDateString();
+  if (S.lastDay!==today){
+    S.lastDay=today; S.daySendsUsed=0; setLog([]); store.save(S);
+  }
+}
+
+/*** ===== Utils ===== */
+function copyText(t){ navigator.clipboard?.writeText(t).catch(()=>{}); }
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.style.display='block';
+  clearTimeout(showToast._t);
+  showToast._t=setTimeout(()=>{ el.style.display='none'; }, 2200);
+}
 </script>
 </body>
 </html>
